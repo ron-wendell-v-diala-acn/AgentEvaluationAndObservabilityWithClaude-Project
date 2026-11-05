@@ -1,0 +1,5 @@
+OS: Microsoft Windows 11 Enterprise (10.0.26200)
+Python: 3.13.14
+Date run: 2026-11-05
+Environments: per-project .venv\Scripts; installed with pip install -e ".[dev]". On Windows, .venv paths are junctions to short per-user local environments to avoid path-length failures.
+For command execution, R: was mapped to the repository root with subst; keep that mapping for the editable installs.
