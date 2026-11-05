@@ -8,35 +8,38 @@ own experiment earns more credit).
 
 ### System 1 — validated, routed pipeline
 
-- **Change I made (file + what I changed):** Used the offline test's recorded response for
-  `POL-2025-009` with the required `endorsements` field set to `null`; no source fixture was edited.
+- **Change I made (file + what I changed):** Temporarily changed
+  `policy_extractor/routing.py`'s `DEFAULT_CONFIDENCE_THRESHOLD` from `0.90` to `0.96`.
 - **Command I ran:** From `04-hitl-routing/solution`,
-  `.venv\Scripts\pytest.exe tests\test_us01_retry.py -v`.
-- **What I predicted:** The missing-source case should escalate immediately because another model
-  call cannot add information absent from the source.
-- **What actually happened (paste the key output line):**
-  `test_ac_01_04_missing_source_halts_immediately PASSED`. The test asserts a
-  `RetryFutileEscalation` for `endorsements`, pattern `endorsements_absent`, with exactly one API
-  call ([retry-perturbation.txt](./01-policy-pipeline/retry-perturbation.txt)).
-- **How this differs from the unperturbed run:** The format/consistency failure tests exercise
-  retry; the missing-source test stops after the first call and escalates.
+  `.venv\Scripts\pytest.exe tests\test_us04_routing.py -v --tb=short`.
+- **What I predicted:** Fields at 0.95 confidence that pass the default 0.90 threshold would now
+  fall below 0.96 and route to `human_review`, breaking tests that expect auto-approval.
+- **What actually happened (paste the key output line):** With 0.96, **4 failed, 5 passed**;
+  for example, `test_ac_04_02_all_clear_routes_to_auto_approve` got `human_review` instead of
+  `auto_approve`. After restoring 0.90, the same test file returned **9 passed**
+  ([routing-threshold-perturbation.txt](./01-policy-pipeline/routing-threshold-perturbation.txt)).
+- **How this differs from the unperturbed run:** At the original 0.90, the all-clear 0.95-confidence
+  extraction auto-approves and all routing tests pass. Raising the threshold changes the routing
+  boundary; it is not evidence that the baseline implementation is broken.
 
 ---
 
 ### System 2 — schema-enforced two-pass extraction
 
-- **Change I made (file + what I changed):** Selected the prebuilt perturbation input
-  `income_sum_mismatch.txt` (not modified in place), where the stated total does not match the
-  monthly components; compared it with the clean appraisal fixture.
-- **Command I ran:** `.venv\Scripts\mortgage-extract.exe fixtures\documents\income_sum_mismatch.txt
-  --mode replay`, alongside the clean appraisal replay.
-- **What I predicted:** The schema-valid values would still fail the deterministic sum check.
-- **What actually happened (paste the key output line):** `consistent: false`; calculated
-  **9642.17**, stated **10892.17**, delta **-1250.0**, exit code **1**
-  ([discrepancy-run.txt](./02-mortgage-extraction/discrepancy-run.txt)).
-- **How this differs from the unperturbed run:** The appraisal replay is `consistent: true` and
-  normalizes `gross_living_area_sqft` to `2400`
-  ([extract-run.txt](./02-mortgage-extraction/extract-run.txt)).
+- **Change I made (file + what I changed):** Temporarily changed
+  `mortgage_extractor/config.py`'s `DEFAULT_TOLERANCE_USD` from **1.00** to **1300.00**, then
+  replayed the bundled mismatch document.
+- **Command I ran:** `.venv\Scripts\mortgage-extract.exe
+  fixtures\documents\income_sum_mismatch.txt --mode replay`.
+- **What I predicted:** The **1250.0** difference would fall within the raised tolerance, hiding the
+  mismatch; restoring **1.00** would flag it again.
+- **What actually happened (paste the key output line):** At **1300.00**, `consistent: true`,
+  `discrepancies: []`, exit code **0**. At the restored **1.00**, `consistent: false` with
+  calculated **9642.17**, stated **10892.17**, delta **-1250.0**, exit code **1**
+  ([tolerance-perturbation.txt](./02-mortgage-extraction/tolerance-perturbation.txt)).
+- **How this differs from the unperturbed run:** The original tolerance correctly rejects the
+  mismatch. Increasing it masks a substantial error, showing why tolerance is a policy choice that
+  needs calibration rather than an arbitrary way to make the check pass.
 
 ---
 

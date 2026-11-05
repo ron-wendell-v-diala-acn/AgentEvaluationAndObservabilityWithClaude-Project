@@ -29,14 +29,16 @@ capstone-submission/
 │   ├── pipeline-run.txt           # terminal capture of `policy-extractor pipeline data/policies/`
 │   ├── routing_decisions.json     # generated routing output (the pipeline's --routing-out default)
 │   ├── calibration-report.txt     # output of `calibration_report.py` (sliced, provided)
+│   ├── routing-threshold-perturbation.txt # threshold-change test run and restored baseline
 │   └── screenshots/               # at least one screenshot of a run
 │
 ├── 02-mortgage-extraction/
 │   ├── tests.txt
 │   ├── static-checks.txt
-│   ├── extract-run.txt            # `mortgage-extract <document>` output
+│   ├── extract-run.txt            # replay with --verbose; combined classify stderr and JSON output
 │   ├── discrepancy-run.txt        # a run where the validator reports a discrepancy
-│   └── screenshots/
+│   ├── missing-field-run.txt      # null for a field absent from the source
+│   └── tolerance-perturbation.txt # raised tolerance versus restored-default replay
 │
 └── 03-supply-chain/
     ├── tests.txt
@@ -49,6 +51,11 @@ capstone-submission/
 
 Plain text (`.txt`) captures and screenshots are both fine. The only hard rule: a reviewer should be
 able to open any artifact you cite in the reflection brief and find the exact value you quoted.
+
+On Windows, run the project-local `.venv\Scripts\` commands from each solution folder. The
+`extract-run.txt` capture includes stderr (`--verbose 2>&1`), so the classify log exposes the
+document type. The policy and mortgage perturbation captures include both the changed-configuration
+result and a rerun with the original setting restored.
 
 ## Perturbation log
 

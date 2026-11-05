@@ -27,13 +27,15 @@
 | Passing test count | 45 passed, 3 skipped ([tests](./01-policy-pipeline/tests.txt)) |
 | Routing output file | Not generated; no live API run. The focused routing tests are captured in [pipeline-run.txt](./01-policy-pipeline/pipeline-run.txt). |
 | auto_approve / human_review / spot_check counts | Not available without the live pipeline run. |
+| Perturbation | Raised routing threshold from 0.90 to 0.96, then restored it ([routing-threshold-perturbation.txt](./01-policy-pipeline/routing-threshold-perturbation.txt)). |
 
 **1a. Retry boundary.** From your perturbation run (a required field removed), paste the escalation
 record. How many API calls did the system make, and why is retrying a futile case worse than
 escalating it?
 
-> The offline perturbation test uses `POL-2025-009` with `endorsements=None`. It asserts a
-> `RetryFutileEscalation` for `field="endorsements"` and
+> Separately from the threshold experiment, offline test
+> `test_ac_01_04_missing_source_halts_immediately` uses `POL-2025-009` with `endorsements=None`.
+> It asserts a `RetryFutileEscalation` for `field="endorsements"` and
 > `detected_pattern="endorsements_absent"` after exactly **1 API call**
 > ([retry test capture](./01-policy-pipeline/retry-perturbation.txt)). A retry cannot recover
 > information absent from the source; it would waste a call and risk inventing a value instead of
@@ -47,7 +49,10 @@ confidence alone, what would have happened?
 > `test_ac_04_06_high_confidence_plus_reviewer_disagreement_still_routes_to_human_review` passed
 > ([pipeline-run.txt](./01-policy-pipeline/pipeline-run.txt)); it shows reviewer disagreement is the
 > signal that overrides even 0.99 confidence. Trusting confidence alone would auto-approve the
-> disputed result.
+> disputed result. Separately, changing the threshold from **0.90** to **0.96** made otherwise
+> auto-approved 0.95-confidence fields route to `human_review`; 4 routing tests failed against
+> baseline expectations and 5 passed. Restoring 0.90 returned all 9 tests to passing
+> ([routing-threshold-perturbation.txt](./01-policy-pipeline/routing-threshold-perturbation.txt)).
 
 **1c. Where the aggregate lies.** Run the calibration snippet. Quote the one cell whose accuracy lags
 its confidence, plus the overall figure. What does slicing by `policy_type × field` catch that a
@@ -65,7 +70,8 @@ single number hides?
 |---|---|
 | Passing test count | 25 passed ([tests](./02-mortgage-extraction/tests.txt)) |
 | Document run | `appraisal_informal_sqft.txt` in replay mode ([extract-run.txt](./02-mortgage-extraction/extract-run.txt)) |
-| Classified type | Appraisal (the CLI capture prints extraction and validation, not a separate classification field). |
+| Classified type | `appraisal`, logged by `--verbose` to stderr ([extract-run.txt](./02-mortgage-extraction/extract-run.txt)) |
+| Perturbation | Raised tolerance to USD 1300.00, then restored USD 1.00 ([tolerance-perturbation.txt](./02-mortgage-extraction/tolerance-perturbation.txt)). |
 
 **2a. Two guarantees.** Paste your discrepancy-run output. Tool use already forces valid JSON, yet the
 validator still catches a bad sum. Why are these two different guarantees? Name one error each cannot
@@ -76,6 +82,12 @@ catch.
 > Schema validation guarantees shape and field types/nullability, not arithmetic agreement. A schema
 > cannot catch a sum mismatch; the arithmetic validator cannot tell whether a structurally valid,
 > internally consistent value was misread from the source.
+>
+> In a separate config perturbation, raising `DEFAULT_TOLERANCE_USD` from **1.00** to **1300.00**
+> changed that same **1250.0** discrepancy to `consistent: true` with no reported discrepancies.
+> Restoring the default made the replay report `consistent: false` again
+> ([tolerance-perturbation.txt](./02-mortgage-extraction/tolerance-perturbation.txt)); this
+> demonstrates how an overly permissive tolerance can hide a real mismatch.
 
 **2b. Refusing to fabricate.** Run on a document missing a field. Paste that field's output. Why null
 instead of an invented value? Point to the schema choice that allows it.

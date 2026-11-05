@@ -1,3 +1,6 @@
+command: .venv\Scripts\mortgage-extract.exe fixtures\documents\appraisal_informal_sqft.txt --mode replay --verbose 2>&1
+mortgage_extractor.pipeline: classify: model=claude-haiku-4-5-20251001 in=2169 out=108 type=appraisal
+mortgage_extractor.pipeline: extract: model=claude-haiku-4-5-20251001 in=4123 out=407 tool=extract_appraisal
 {
   "extraction": {
     "borrower": {
